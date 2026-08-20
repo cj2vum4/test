@@ -77,10 +77,65 @@
       background-image: linear-gradient(rgba(74,43,33,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(74,43,33,.06) 1px, transparent 1px);
       background-size: 24px 24px;
     }
+    /* ---------- Street scene（人來人往） ---------- */
+    .street-stage { position: relative; height: 380px; }
+    @media (min-width: 640px) { .street-stage { height: 460px; } }
+    .street-lane { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+
+    /* Both ends of the sky/ground ramp land on wood-900 so the stage melts into the section. */
+    .street-sky { background: linear-gradient(180deg, #2b1b14 0%, #1a1009 24%, #2a1810 56%, #4a2b21 82%, #6d3f2a 100%); }
+    .street-haze { background: radial-gradient(56% 58% at 50% 80%, rgba(232,130,36,.34), transparent 72%); }
+    .street-ground { background: linear-gradient(180deg, #4d2d22 0%, #3a2119 54%, #2b1b14 100%); }
+    .street-spill { background: radial-gradient(46% 132% at 50% 0%, rgba(247,161,75,.42), transparent 74%); }
+    .street-vignette { background: radial-gradient(84% 88% at 50% 42%, transparent 54%, rgba(20,12,7,.52) 100%); }
+
+    .street-shop { filter: drop-shadow(0 0 48px rgba(232,130,36,.26)); }
+    .street-window { animation: windowPulse 6.5s ease-in-out infinite; }
+    .street-steam { animation: steamRise var(--rise) ease-out infinite; animation-delay: var(--puff); }
+    .street-lantern { transform-box: view-box; animation: lanternSway 3.8s ease-in-out infinite; }
+    .street-lantern--a { transform-origin: 110px 176px; }
+    .street-lantern--b { transform-origin: 510px 176px; animation-duration: 4.6s; animation-delay: -1.4s; }
+
+    @keyframes windowPulse { 0%, 100% { opacity: .9; } 45% { opacity: 1; } }
+    @keyframes lanternSway { 0%, 100% { transform: rotate(-3.5deg); } 50% { transform: rotate(3.5deg); } }
+    @keyframes steamRise {
+      0% { opacity: 0; transform: translateY(4px) scale(.55); }
+      22% { opacity: .55; }
+      100% { opacity: 0; transform: translateY(-52px) scale(1.6); }
+    }
+
+    /* Pedestrians: outer element travels, inner bob + limbs run the walk cycle. */
+    .walker { position: absolute; bottom: var(--y); color: #0b0603; will-change: transform; animation: walkAcross var(--cross) linear infinite; animation-delay: var(--delay); }
+    .walker--rtl { animation-name: walkBack; }
+    .walker-bob { animation: walkBob calc(var(--step) / 2) ease-in-out infinite; }
+    .walker-svg { display: block; height: calc(var(--h) * var(--scale, 1)); width: auto; opacity: var(--tone); }
+    @media (max-width: 639px) { .street-stage { --scale: .74; } }
+    .walker--rtl .walker-svg { transform: scaleX(-1); }
+
+    .w-arm-a, .w-arm-b, .w-leg-a, .w-leg-b { transform-box: view-box; }
+    .w-arm-a { transform-origin: 19.5px 29px; animation: armSwing var(--step) ease-in-out infinite; }
+    .w-arm-b { transform-origin: 44.5px 29px; animation: armSwing var(--step) ease-in-out infinite; animation-delay: calc(var(--step) * -.5); }
+    .w-leg-a { transform-origin: 26px 63px; animation: legSwing var(--step) ease-in-out infinite; }
+    .w-leg-b { transform-origin: 38px 63px; animation: legSwing var(--step) ease-in-out infinite; animation-delay: calc(var(--step) * -.5); }
+
+    @keyframes walkAcross { from { transform: translateX(-170px); } to { transform: translateX(calc(100vw + 170px)); } }
+    @keyframes walkBack { from { transform: translateX(calc(100vw + 170px)); } to { transform: translateX(-170px); } }
+    @keyframes walkBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    @keyframes legSwing { 0%, 100% { transform: rotate(22deg); } 50% { transform: rotate(-22deg); } }
+    @keyframes armSwing { 0%, 100% { transform: rotate(-16deg); } 50% { transform: rotate(16deg); } }
+
+    /* Off-screen the scene stops burning frames. */
+    .street-stage:not(.is-live) * { animation-play-state: paused; }
+
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
       .reveal { opacity: 1; transform: none; }
+      /* The global rule above would park every walker off-stage; hold a still frame instead. */
+      .walker { animation: none !important; transform: translateX(var(--rest)) !important; }
+      .walker-bob, .w-arm-a, .w-arm-b, .w-leg-a, .w-leg-b,
+      .street-window, .street-lantern, .street-steam { animation: none !important; }
+      .street-steam { opacity: .28; }
     }
   </style>
 </head>
@@ -255,6 +310,112 @@
             <p class="mt-2 text-sm text-white/65">老店手藝傳承</p>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Street Life：人來人往 -->
+    <section id="street" class="relative overflow-hidden bg-wood-900 py-20 text-white sm:py-24">
+      <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="reveal mx-auto max-w-2xl text-center">
+          <p class="text-sm font-extrabold tracking-[.2em] text-ember-400">STREET LIFE</p>
+          <h2 class="mt-4 text-balance font-display text-4xl font-black leading-tight sm:text-5xl">三十年來，這條街上人來人往。</h2>
+          <p class="mt-6 leading-8 text-white/70">從清晨第一鍋，到深夜最後一位客人 — 煎台的滋滋聲沒停過，門口的腳步聲也是。</p>
+        </div>
+      </div>
+
+      <!-- Decorative animated scene. -->
+      <div id="streetStage" class="street-stage mt-14 w-full" aria-hidden="true">
+        <div class="street-sky absolute inset-0"></div>
+        <div class="street-haze absolute inset-0"></div>
+
+        <!-- Distant skyline -->
+        <svg class="absolute inset-x-0 bottom-[118px] w-full opacity-25" viewBox="0 0 1440 120" preserveAspectRatio="none" fill="#0d0805">
+          <path d="M0 120V64h58V38h44v26h52V78h66V50h72v70H0Zm320 0V42h48V18h58v24h40v34h54V56h62v64H320Zm354 0V70h56V44h50v26h46V26h60v32h48v62H674Zm326 0V52h62V30h44v22h56v30h48V60h60v60h-270Z"/>
+        </svg>
+
+        <!-- Storefront -->
+        <div class="absolute bottom-[118px] left-1/2 -translate-x-1/2" style="width: min(560px, 92vw)">
+          <svg class="street-shop h-auto w-full" viewBox="0 0 620 320" fill="none">
+            <defs>
+              <linearGradient id="shopWall" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#1d120c" />
+                <stop offset="1" stop-color="#0d0806" />
+              </linearGradient>
+              <linearGradient id="shopGlow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffdca8" />
+                <stop offset="1" stop-color="#e88224" />
+              </linearGradient>
+              <clipPath id="awningClip"><path d="M28 132h564l-34 46H62l-34-46Z" /></clipPath>
+              <clipPath id="windowClip"><rect x="92" y="186" width="436" height="114" rx="8" /></clipPath>
+            </defs>
+
+            <!-- Wall -->
+            <path d="M60 44h500a12 12 0 0 1 12 12v264H48V56a12 12 0 0 1 12-12Z" fill="url(#shopWall)" />
+
+            <!-- Signboard -->
+            <rect x="212" y="58" width="196" height="54" rx="10" fill="#0b0605" stroke="#e88224" stroke-width="2.5" />
+            <text x="310" y="97" text-anchor="middle" fill="#f7a14b" font-family="'Noto Serif TC', serif" font-size="32" font-weight="900" letter-spacing="8">餃木</text>
+
+            <!-- Lit window + interior -->
+            <rect class="street-window" x="92" y="186" width="436" height="114" rx="8" fill="url(#shopGlow)" />
+            <g clip-path="url(#windowClip)" fill="#2b1b14">
+              <rect x="92" y="272" width="436" height="28" opacity=".85" />
+              <ellipse cx="198" cy="270" rx="54" ry="11" opacity=".9" />
+              <path d="M172 270c0-10 12-18 26-18s26 8 26 18Z" opacity=".72" />
+              <circle cx="372" cy="228" r="15" opacity=".8" />
+              <path d="M357 209h30l-4-13a11 11 0 0 0-22 0l-4 13Z" opacity=".8" />
+              <path d="M348 245h48v30h-48z" opacity=".8" />
+              <g fill="#fff5e4">
+                <ellipse class="street-steam" style="--rise: 5.4s; --puff: 0s" cx="184" cy="258" rx="16" ry="11" />
+                <ellipse class="street-steam" style="--rise: 6.8s; --puff: -2.3s" cx="210" cy="256" rx="13" ry="9" />
+                <ellipse class="street-steam" style="--rise: 6.1s; --puff: -4.1s" cx="196" cy="260" rx="10" ry="8" />
+              </g>
+            </g>
+
+            <!-- Striped awning -->
+            <g clip-path="url(#awningClip)">
+              <rect x="28" y="132" width="564" height="46" fill="#7d2f1c" />
+              <g fill="#f3eadf" opacity=".2">
+                <rect x="28" y="132" width="47" height="46" />
+                <rect x="122" y="132" width="47" height="46" />
+                <rect x="216" y="132" width="47" height="46" />
+                <rect x="310" y="132" width="47" height="46" />
+                <rect x="404" y="132" width="47" height="46" />
+                <rect x="498" y="132" width="47" height="46" />
+              </g>
+            </g>
+            <path d="M62 178h496v6H62z" fill="#5d2013" />
+
+            <!-- Hanging lanterns -->
+            <g class="street-lantern street-lantern--a">
+              <path d="M110 176v14" stroke="#c96216" stroke-width="3" />
+              <ellipse cx="110" cy="214" rx="19" ry="24" fill="#e88224" />
+              <path d="M91 214h38" stroke="#a8480f" stroke-width="2" opacity=".65" />
+            </g>
+            <g class="street-lantern street-lantern--b">
+              <path d="M510 176v14" stroke="#c96216" stroke-width="3" />
+              <ellipse cx="510" cy="210" rx="16" ry="21" fill="#e88224" />
+              <path d="M494 210h32" stroke="#a8480f" stroke-width="2" opacity=".65" />
+            </g>
+          </svg>
+        </div>
+
+        <!-- Pavement -->
+        <div class="street-ground absolute inset-x-0 bottom-0 h-[118px]"></div>
+        <div class="street-spill absolute inset-x-0 bottom-0 h-[118px]"></div>
+
+        <!-- Passers-by: far lane sits deeper on the pavement, near lane crosses the foreground. -->
+        <div class="street-lane" data-street-lane="far"></div>
+        <div class="street-lane" data-street-lane="near"></div>
+
+        <div class="street-vignette pointer-events-none absolute inset-0"></div>
+      </div>
+
+      <div class="reveal relative z-10 mx-auto mt-12 flex max-w-7xl flex-col items-center gap-5 px-4 text-center sm:px-6 lg:px-8">
+        <p class="text-sm text-white/55">尖峰時段人潮較多，建議先線上點餐，到店直接取。</p>
+        <a href="#menu" class="inline-flex items-center gap-2 rounded-full bg-ember-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-ember-500/25 transition hover:-translate-y-0.5 hover:bg-ember-600">
+          先點餐再出門 <i data-lucide="arrow-right" class="h-4 w-4"></i>
+        </a>
       </div>
     </section>
 
@@ -549,6 +710,22 @@
       { q: '有提供素食選項嗎？', a: '有。田園蔬食鍋貼與部分小菜為蛋奶素或全素選項；實際餐點過敏原與製程資訊可於點餐時向門市確認。' }
     ];
 
+    // Passers-by for the street scene. `far` walks deeper on the pavement (smaller, dimmer,
+    // slower); `near` crosses the foreground. Negative delays stagger everyone on first paint,
+    // and `rest` is the parked position used when the visitor prefers reduced motion.
+    const walkers = [
+      { lane: 'far',  dir: 'ltr', type: 'plain', h: 66,  y: 108, cross: 38, step: .86, tone: .50, delay: -4,    rest: '14vw' },
+      { lane: 'far',  dir: 'rtl', type: 'bag',   h: 70,  y: 104, cross: 34, step: .82, tone: .55, delay: -19,   rest: '62vw' },
+      { lane: 'far',  dir: 'ltr', type: 'pack',  h: 62,  y: 112, cross: 42, step: .90, tone: .45, delay: -26,   rest: '78vw' },
+      { lane: 'far',  dir: 'rtl', type: 'plain', h: 74,  y: 100, cross: 30, step: .78, tone: .58, delay: -11,   rest: '34vw' },
+      { lane: 'near', dir: 'ltr', type: 'bag',   h: 150, y: 26,  cross: 26, step: .70, tone: .95, delay: -3,    rest: '22vw' },
+      { lane: 'near', dir: 'rtl', type: 'plain', h: 158, y: 20,  cross: 24, step: .66, tone: 1,   delay: -14,   rest: '70vw' },
+      { lane: 'near', dir: 'ltr', type: 'plain', h: 138, y: 34,  cross: 30, step: .74, tone: .88, delay: -21,   rest: '48vw' },
+      { lane: 'near', dir: 'ltr', type: 'pack',  h: 144, y: 30,  cross: 30, step: .72, tone: .90, delay: -22.4, rest: '56vw' },
+      { lane: 'near', dir: 'rtl', type: 'bag',   h: 132, y: 38,  cross: 32, step: .76, tone: .82, delay: -28,   rest: '86vw' },
+      { lane: 'near', dir: 'ltr', type: 'plain', h: 120, y: 42,  cross: 36, step: .80, tone: .75, delay: -33,   rest: '8vw' }
+    ];
+
     // ---------- State ----------
     let activeCategory = 'gyoza';
     let activeLocation = locations[0].id;
@@ -723,6 +900,39 @@
           </div>
         </article>`).join('');
       lucide.createIcons();
+    }
+
+    // Silhouette built around fixed pivots: shoulders at y=29, hips at y=63 (see .w-arm-*/.w-leg-*).
+    function walkerFigure(type) {
+      const pack = type === 'pack' ? '<rect x="11" y="30" width="11" height="23" rx="5" />' : '';
+      const bag = type === 'bag' ? '<path d="M37 62h13a2 2 0 0 1 2 2v14a3 3 0 0 1-3 3H38a3 3 0 0 1-3-3V64a2 2 0 0 1 2-2Z" />' : '';
+      return `
+        <circle cx="32" cy="13" r="10" />
+        ${pack}
+        <rect x="19" y="24" width="26" height="42" rx="12" />
+        <g class="w-arm-a"><rect x="15.5" y="29" width="8" height="33" rx="4" /></g>
+        <g class="w-arm-b"><rect x="40.5" y="29" width="8" height="33" rx="4" />${bag}</g>
+        <g class="w-leg-a"><rect x="21.5" y="60" width="9" height="57" rx="4.5" /></g>
+        <g class="w-leg-b"><rect x="33.5" y="60" width="9" height="57" rx="4.5" /></g>`;
+    }
+
+    function renderStreet() {
+      const stage = $('#streetStage');
+      if (!stage) return;
+
+      $$('[data-street-lane]', stage).forEach(lane => {
+        lane.innerHTML = walkers.filter(walker => walker.lane === lane.dataset.streetLane).map(walker => `
+          <div class="walker${walker.dir === 'rtl' ? ' walker--rtl' : ''}" style="--h:${walker.h}px; --y:${walker.y}px; --cross:${walker.cross}s; --step:${walker.step}s; --tone:${walker.tone}; --delay:${walker.delay}s; --rest:${walker.rest}">
+            <div class="walker-bob">
+              <svg class="walker-svg" viewBox="0 0 68 120" fill="currentColor">${walkerFigure(walker.type)}</svg>
+            </div>
+          </div>`).join('');
+      });
+
+      // Keep the scene idle unless it is actually on screen.
+      new IntersectionObserver(entries => {
+        entries.forEach(entry => stage.classList.toggle('is-live', entry.isIntersecting));
+      }, { threshold: 0 }).observe(stage);
     }
 
     // ---------- Cart actions ----------
@@ -978,6 +1188,7 @@
     renderCart();
     renderLocations();
     renderFaqs();
+    renderStreet();
     updateHeader();
     $$('.reveal').forEach(element => revealObserver.observe(element));
     lucide.createIcons();
