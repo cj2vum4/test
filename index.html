@@ -49,6 +49,16 @@
     }
   </script>
 
+  <!-- Three.js for the 3D street stage. Bare specifier so the module can be
+       dynamically imported and failure handled gracefully. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js"
+      }
+    }
+  </script>
+
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 
@@ -88,9 +98,16 @@
       background-size: 24px 24px;
     }
     /* ---------- Street scene（人來人往） ---------- */
-    .street-stage { position: relative; height: 380px; }
-    @media (min-width: 640px) { .street-stage { height: 460px; } }
+    .street-stage { position: relative; height: 420px; }
+    @media (min-width: 640px) { .street-stage { height: 520px; } }
     .street-lane { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+
+    /* The WebGL stage renders transparent over the same sky gradient, so the 3D
+       street melts into the section exactly like the flat one did. `.street-flat`
+       is the fallback and only steps aside once Three.js has really mounted. */
+    .street-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity 1s ease; }
+    .street-stage.is-3d .street-canvas { opacity: 1; }
+    .street-stage.is-3d .street-flat { display: none; }
 
     /* Both ends of the sky/ground ramp land on wood-900 so the stage melts into the section. */
     .street-sky { background: linear-gradient(180deg, #2b1b14 0%, #1a1009 24%, #2a1810 56%, #4a2b21 82%, #6d3f2a 100%); }
@@ -334,85 +351,91 @@
         <div class="street-sky absolute inset-0"></div>
         <div class="street-haze absolute inset-0"></div>
 
-        <!-- Distant skyline -->
-        <svg class="absolute inset-x-0 bottom-[118px] w-full opacity-25" viewBox="0 0 1440 120" preserveAspectRatio="none" fill="#0d0805">
-          <path d="M0 120V64h58V38h44v26h52V78h66V50h72v70H0Zm320 0V42h48V18h58v24h40v34h54V56h62v64H320Zm354 0V70h56V44h50v26h46V26h60v32h48v62H674Zm326 0V52h62V30h44v22h56v30h48V60h60v60h-270Z"/>
-        </svg>
-
-        <!-- Storefront -->
-        <div class="absolute bottom-[118px] left-1/2 -translate-x-1/2" style="width: min(560px, 92vw)">
-          <svg class="street-shop h-auto w-full" viewBox="0 0 620 320" fill="none">
-            <defs>
-              <linearGradient id="shopWall" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="#1d120c" />
-                <stop offset="1" stop-color="#0d0806" />
-              </linearGradient>
-              <linearGradient id="shopGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="#ffdca8" />
-                <stop offset="1" stop-color="#e88224" />
-              </linearGradient>
-              <clipPath id="awningClip"><path d="M28 132h564l-34 46H62l-34-46Z" /></clipPath>
-              <clipPath id="windowClip"><rect x="92" y="186" width="436" height="114" rx="8" /></clipPath>
-            </defs>
-
-            <!-- Wall -->
-            <path d="M60 44h500a12 12 0 0 1 12 12v264H48V56a12 12 0 0 1 12-12Z" fill="url(#shopWall)" />
-
-            <!-- Signboard -->
-            <rect x="212" y="58" width="196" height="54" rx="10" fill="#0b0605" stroke="#e88224" stroke-width="2.5" />
-            <text x="310" y="97" text-anchor="middle" fill="#f7a14b" font-family="'Noto Serif TC', serif" font-size="32" font-weight="900" letter-spacing="8">餃木</text>
-
-            <!-- Lit window + interior -->
-            <rect class="street-window" x="92" y="186" width="436" height="114" rx="8" fill="url(#shopGlow)" />
-            <g clip-path="url(#windowClip)" fill="#2b1b14">
-              <rect x="92" y="272" width="436" height="28" opacity=".85" />
-              <ellipse cx="198" cy="270" rx="54" ry="11" opacity=".9" />
-              <path d="M172 270c0-10 12-18 26-18s26 8 26 18Z" opacity=".72" />
-              <circle cx="372" cy="228" r="15" opacity=".8" />
-              <path d="M357 209h30l-4-13a11 11 0 0 0-22 0l-4 13Z" opacity=".8" />
-              <path d="M348 245h48v30h-48z" opacity=".8" />
-              <g fill="#fff5e4">
-                <ellipse class="street-steam" style="--rise: 5.4s; --puff: 0s" cx="184" cy="258" rx="16" ry="11" />
-                <ellipse class="street-steam" style="--rise: 6.8s; --puff: -2.3s" cx="210" cy="256" rx="13" ry="9" />
-                <ellipse class="street-steam" style="--rise: 6.1s; --puff: -4.1s" cx="196" cy="260" rx="10" ry="8" />
-              </g>
-            </g>
-
-            <!-- Striped awning -->
-            <g clip-path="url(#awningClip)">
-              <rect x="28" y="132" width="564" height="46" fill="#7d2f1c" />
-              <g fill="#f3eadf" opacity=".2">
-                <rect x="28" y="132" width="47" height="46" />
-                <rect x="122" y="132" width="47" height="46" />
-                <rect x="216" y="132" width="47" height="46" />
-                <rect x="310" y="132" width="47" height="46" />
-                <rect x="404" y="132" width="47" height="46" />
-                <rect x="498" y="132" width="47" height="46" />
-              </g>
-            </g>
-            <path d="M62 178h496v6H62z" fill="#5d2013" />
-
-            <!-- Hanging lanterns -->
-            <g class="street-lantern street-lantern--a">
-              <path d="M110 176v14" stroke="#c96216" stroke-width="3" />
-              <ellipse cx="110" cy="214" rx="19" ry="24" fill="#e88224" />
-              <path d="M91 214h38" stroke="#a8480f" stroke-width="2" opacity=".65" />
-            </g>
-            <g class="street-lantern street-lantern--b">
-              <path d="M510 176v14" stroke="#c96216" stroke-width="3" />
-              <ellipse cx="510" cy="210" rx="16" ry="21" fill="#e88224" />
-              <path d="M494 210h32" stroke="#a8480f" stroke-width="2" opacity=".65" />
-            </g>
+        <!-- 2D fallback: stays put unless WebGL + Three.js both come up. -->
+        <div class="street-flat absolute inset-0">
+          <!-- Distant skyline -->
+          <svg class="absolute inset-x-0 bottom-[118px] w-full opacity-25" viewBox="0 0 1440 120" preserveAspectRatio="none" fill="#0d0805">
+            <path d="M0 120V64h58V38h44v26h52V78h66V50h72v70H0Zm320 0V42h48V18h58v24h40v34h54V56h62v64H320Zm354 0V70h56V44h50v26h46V26h60v32h48v62H674Zm326 0V52h62V30h44v22h56v30h48V60h60v60h-270Z"/>
           </svg>
+
+          <!-- Storefront -->
+          <div class="absolute bottom-[118px] left-1/2 -translate-x-1/2" style="width: min(560px, 92vw)">
+            <svg class="street-shop h-auto w-full" viewBox="0 0 620 320" fill="none">
+              <defs>
+                <linearGradient id="shopWall" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#1d120c" />
+                  <stop offset="1" stop-color="#0d0806" />
+                </linearGradient>
+                <linearGradient id="shopGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#ffdca8" />
+                  <stop offset="1" stop-color="#e88224" />
+                </linearGradient>
+                <clipPath id="awningClip"><path d="M28 132h564l-34 46H62l-34-46Z" /></clipPath>
+                <clipPath id="windowClip"><rect x="92" y="186" width="436" height="114" rx="8" /></clipPath>
+              </defs>
+
+              <!-- Wall -->
+              <path d="M60 44h500a12 12 0 0 1 12 12v264H48V56a12 12 0 0 1 12-12Z" fill="url(#shopWall)" />
+
+              <!-- Signboard -->
+              <rect x="212" y="58" width="196" height="54" rx="10" fill="#0b0605" stroke="#e88224" stroke-width="2.5" />
+              <text x="310" y="97" text-anchor="middle" fill="#f7a14b" font-family="'Noto Serif TC', serif" font-size="32" font-weight="900" letter-spacing="8">餃木</text>
+
+              <!-- Lit window + interior -->
+              <rect class="street-window" x="92" y="186" width="436" height="114" rx="8" fill="url(#shopGlow)" />
+              <g clip-path="url(#windowClip)" fill="#2b1b14">
+                <rect x="92" y="272" width="436" height="28" opacity=".85" />
+                <ellipse cx="198" cy="270" rx="54" ry="11" opacity=".9" />
+                <path d="M172 270c0-10 12-18 26-18s26 8 26 18Z" opacity=".72" />
+                <circle cx="372" cy="228" r="15" opacity=".8" />
+                <path d="M357 209h30l-4-13a11 11 0 0 0-22 0l-4 13Z" opacity=".8" />
+                <path d="M348 245h48v30h-48z" opacity=".8" />
+                <g fill="#fff5e4">
+                  <ellipse class="street-steam" style="--rise: 5.4s; --puff: 0s" cx="184" cy="258" rx="16" ry="11" />
+                  <ellipse class="street-steam" style="--rise: 6.8s; --puff: -2.3s" cx="210" cy="256" rx="13" ry="9" />
+                  <ellipse class="street-steam" style="--rise: 6.1s; --puff: -4.1s" cx="196" cy="260" rx="10" ry="8" />
+                </g>
+              </g>
+
+              <!-- Striped awning -->
+              <g clip-path="url(#awningClip)">
+                <rect x="28" y="132" width="564" height="46" fill="#7d2f1c" />
+                <g fill="#f3eadf" opacity=".2">
+                  <rect x="28" y="132" width="47" height="46" />
+                  <rect x="122" y="132" width="47" height="46" />
+                  <rect x="216" y="132" width="47" height="46" />
+                  <rect x="310" y="132" width="47" height="46" />
+                  <rect x="404" y="132" width="47" height="46" />
+                  <rect x="498" y="132" width="47" height="46" />
+                </g>
+              </g>
+              <path d="M62 178h496v6H62z" fill="#5d2013" />
+
+              <!-- Hanging lanterns -->
+              <g class="street-lantern street-lantern--a">
+                <path d="M110 176v14" stroke="#c96216" stroke-width="3" />
+                <ellipse cx="110" cy="214" rx="19" ry="24" fill="#e88224" />
+                <path d="M91 214h38" stroke="#a8480f" stroke-width="2" opacity=".65" />
+              </g>
+              <g class="street-lantern street-lantern--b">
+                <path d="M510 176v14" stroke="#c96216" stroke-width="3" />
+                <ellipse cx="510" cy="210" rx="16" ry="21" fill="#e88224" />
+                <path d="M494 210h32" stroke="#a8480f" stroke-width="2" opacity=".65" />
+              </g>
+            </svg>
+          </div>
+
+          <!-- Pavement -->
+          <div class="street-ground absolute inset-x-0 bottom-0 h-[118px]"></div>
+          <div class="street-spill absolute inset-x-0 bottom-0 h-[118px]"></div>
+
+          <!-- Passers-by: far lane sits deeper on the pavement, near lane crosses the foreground. -->
+          <div class="street-lane" data-street-lane="far"></div>
+          <div class="street-lane" data-street-lane="near"></div>
         </div>
 
-        <!-- Pavement -->
-        <div class="street-ground absolute inset-x-0 bottom-0 h-[118px]"></div>
-        <div class="street-spill absolute inset-x-0 bottom-0 h-[118px]"></div>
-
-        <!-- Passers-by: far lane sits deeper on the pavement, near lane crosses the foreground. -->
-        <div class="street-lane" data-street-lane="far"></div>
-        <div class="street-lane" data-street-lane="near"></div>
+        <!-- 3D stage -->
+        <canvas id="streetCanvas" class="street-canvas"></canvas>
 
         <div class="street-vignette pointer-events-none absolute inset-0"></div>
       </div>
@@ -1198,6 +1221,986 @@
     updateHeader();
     $$('.reveal').forEach(element => revealObserver.observe(element));
     lucide.createIcons();
+  </script>
+
+  <script type="module">
+    /* ======================================================================
+       Street Life in 3D — 人來人往進入店家
+       ----------------------------------------------------------------------
+       Progressive enhancement over the CSS/SVG street: the flat scene stays in
+       the markup and only gets hidden once WebGL, the import map and Three.js
+       have all actually resolved. Everything here is procedural — no external
+       geometry or texture files to 404.
+       ====================================================================== */
+    const stage = document.getElementById('streetStage');
+    const canvas = document.getElementById('streetCanvas');
+    if (stage && canvas && hasWebGL()) boot();
+
+    function hasWebGL() {
+      try {
+        const probe = document.createElement('canvas');
+        return !!(window.WebGLRenderingContext && (probe.getContext('webgl2') || probe.getContext('webgl')));
+      } catch { return false; }
+    }
+
+    async function boot() {
+      let THREE;
+      // Bare specifier + import map: if either the CDN or import-map support is
+      // missing this throws, we return, and the 2D scene is simply never hidden.
+      try { THREE = await import('three'); } catch { return; }
+      try { new Scene3D(THREE).mount(); } catch (error) { console.warn('[street] 3D stage unavailable', error); }
+    }
+
+    class Scene3D {
+      constructor(THREE) {
+        this.T = THREE;
+        this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        this.time = 0;
+        this.last = 0;
+        this.people = [];
+        this.disposables = [];
+        this.pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+        this.edgeX = 16;                                       // seed; resize() fits it to the view
+        this.live = false;
+        this.onScreen = false;
+        this.frame = 0;
+        this.tick = this.tick.bind(this);
+      }
+
+      // Track every geometry/material/texture we make so teardown is total.
+      keep(...items) { this.disposables.push(...items); return items[0]; }
+
+      mount() {
+        const T = this.T;
+
+        this.renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+        this.renderer.setClearAlpha(0);                       // the CSS sky gradient shows through
+        this.renderer.outputColorSpace = T.SRGBColorSpace;
+        this.renderer.toneMapping = T.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.08;
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = T.PCFShadowMap;
+
+        this.scene = new T.Scene();
+        // Warm-dark fog so the street dissolves into the same tone as the
+        // section background instead of ending on a hard edge.
+        this.scene.fog = new T.Fog(0x241610, 16, 62);
+
+        this.camera = new T.PerspectiveCamera(34, 1, 0.5, 90);
+        this.camRoot = new T.Group();                          // parallax/drift wrapper
+        this.camRoot.add(this.camera);
+        this.scene.add(this.camRoot);
+
+        this.buildLights();
+        this.buildStreet();
+        this.buildShop();
+        this.buildNeighbours();
+        this.buildLamps();
+        this.buildSteam();
+        this.resize();                                         // fixes edgeX before routes are drawn
+        this.buildCrowd();
+        this.bindEvents();
+        stage.classList.add('is-3d');                          // hides the 2D fallback
+
+        // One frame is enough when the visitor asked for less motion.
+        if (this.reduced) { this.step(0); this.renderer.render(this.scene, this.camera); return; }
+        this.live = true;
+        this.last = this.now();
+        this.frame = requestAnimationFrame(this.tick);
+      }
+
+      /* ---------------- Lighting ---------------- */
+      buildLights() {
+        const T = this.T;
+
+        this.scene.add(new T.AmbientLight(0x53412f, 0.9));
+        this.scene.add(new T.HemisphereLight(0x413f4a, 0x3a2517, 1.15));
+
+        // Cool moon rim from behind-left keeps silhouettes off the dark wall.
+        const moon = new T.DirectionalLight(0xa8b6cc, 0.55);
+        moon.position.set(-13, 12, -8);
+        this.scene.add(moon);
+
+        // The shop's own light: a wide spot inside the window throwing warmth
+        // across the pavement. This is the only shadow caster — one map, and it
+        // is the shadow the eye actually looks for.
+        const spill = new T.SpotLight(0xffb257, 190, 26, 0.95, 0.62, 2);
+        spill.position.set(-1.4, 3.4, -1.4);
+        spill.target.position.set(-0.6, 0, 6.5);
+        spill.castShadow = true;
+        spill.shadow.mapSize.set(this.shadowSize(), this.shadowSize());
+        spill.shadow.camera.near = 1;
+        spill.shadow.camera.far = 26;
+        spill.shadow.bias = -0.0012;
+        spill.shadow.normalBias = 0.02;
+        this.scene.add(spill, spill.target);
+        this.spill = spill;
+
+        // Shadowless wash spreading the window's light down the pavement; the
+        // key spot alone left everything past a few metres unlit.
+        const wash = new T.SpotLight(0xffa860, 95, 24, 1.15, 0.9, 2);
+        wash.position.set(-3.6, 3.2, -1);
+        wash.target.position.set(-8, 0, 5);
+        this.scene.add(wash, wash.target);
+
+        // Doorway glow — sells the opening as a lit room rather than a black hole.
+        this.doorLight = new T.PointLight(0xffc074, 26, 9, 2);
+        this.doorLight.position.set(3.1, 1.9, -0.7);
+        this.scene.add(this.doorLight);
+
+        this.lanternLights = [];
+      }
+
+      shadowSize() { return window.innerWidth < 768 ? 512 : 1024; }
+
+      /* ---------------- Pavement + road ---------------- */
+      buildStreet() {
+        const T = this.T;
+        const mat = (color, roughness = 0.92) => this.keep(new T.MeshStandardMaterial({ color, roughness, metalness: 0 }));
+
+        const pavement = new T.Mesh(this.keep(new T.BoxGeometry(80, 0.3, 6.2)), mat(0x3a2a22, 0.85));
+        pavement.position.set(0, -0.15, 3.1);
+        pavement.receiveShadow = true;
+        this.scene.add(pavement);
+
+        // Kerb lip, then the road dropping away — the height break is what reads
+        // as depth once the warm light rakes across it.
+        const kerb = new T.Mesh(this.keep(new T.BoxGeometry(80, 0.3, 0.34)), mat(0x33271f, 0.95));
+        kerb.position.set(0, -0.15, 6.4);
+        kerb.receiveShadow = true;
+        this.scene.add(kerb);
+
+        const road = new T.Mesh(this.keep(new T.PlaneGeometry(80, 30)), mat(0x1d1410, 0.88));
+        road.rotation.x = -Math.PI / 2;
+        road.position.set(0, -0.32, 21);
+        road.receiveShadow = true;
+        this.scene.add(road);
+
+        // Paving joints: thin dark strips, cheap and they give the ground scale.
+        const jointGeo = this.keep(new T.BoxGeometry(0.05, 0.02, 6.2));
+        const jointMat = mat(0x241a15, 0.95);
+        for (let x = -30; x <= 30; x += 2.5) {
+          const joint = new T.Mesh(jointGeo, jointMat);
+          joint.position.set(x, 0.005, 3.1);
+          this.scene.add(joint);
+        }
+      }
+
+      /* ---------------- The shop ---------------- */
+      buildShop() {
+        const T = this.T;
+        const W = 12, H = 5.6;
+        const win = { x0: -4.2, x1: 1.4, y0: 1.05, y1: 3.0 };
+        const door = { x0: 2.3, x1: 3.9, y0: 0, y1: 2.5 };
+        this.door = { x: (door.x0 + door.x1) / 2, z: -0.9 };
+
+        // Facade as one extruded shape with real holes punched for the window and
+        // the doorway, so the lit interior genuinely shows through both.
+        const shape = new T.Shape();
+        shape.moveTo(-W / 2, 0); shape.lineTo(W / 2, 0); shape.lineTo(W / 2, H); shape.lineTo(-W / 2, H); shape.closePath();
+        shape.holes.push(this.rectPath(win.x0, win.y0, win.x1, win.y1), this.rectPath(door.x0, door.y0, door.x1, door.y1));
+
+        const facade = new T.Mesh(
+          this.keep(new T.ExtrudeGeometry(shape, { depth: 0.45, bevelEnabled: false })),
+          this.keep(new T.MeshStandardMaterial({ color: 0x1b110c, roughness: 0.95, metalness: 0 }))
+        );
+        facade.position.z = -0.45;
+        facade.castShadow = true;
+        facade.receiveShadow = true;
+        this.scene.add(facade);
+
+        this.buildInterior(win, door);
+
+        // Glass: barely-there sheen over the opening so the window is not a void.
+        const glass = new T.Mesh(
+          this.keep(new T.PlaneGeometry(win.x1 - win.x0, win.y1 - win.y0)),
+          this.keep(new T.MeshStandardMaterial({ color: 0xffd9a3, transparent: true, opacity: 0.12, roughness: 0.15, metalness: 0.4, side: T.DoubleSide }))
+        );
+        glass.position.set((win.x0 + win.x1) / 2, (win.y0 + win.y1) / 2, -0.04);
+        this.scene.add(glass);
+
+        // Window mullions.
+        const barMat = this.keep(new T.MeshStandardMaterial({ color: 0x140d09, roughness: 0.8 }));
+        const barGeo = this.keep(new T.BoxGeometry(0.07, win.y1 - win.y0, 0.09));
+        for (const x of [-2.35, -0.5]) {
+          const bar = new T.Mesh(barGeo, barMat);
+          bar.position.set(x, (win.y0 + win.y1) / 2, -0.02);
+          this.scene.add(bar);
+        }
+
+        this.buildMenuBoard();
+        this.buildAwning(W);
+        this.buildSign();
+        this.buildLanterns();
+      }
+
+      // The wall between the door and the corner was dead space; a lit menu
+      // board fills it and gives the entrance somewhere to look.
+      buildMenuBoard() {
+        const T = this.T;
+        const panel = new T.Mesh(
+          this.keep(new T.BoxGeometry(1.5, 1.9, 0.09)),
+          this.keep(new T.MeshStandardMaterial({ color: 0xf3d8a8, emissive: 0xd89a4a, emissiveIntensity: 0.6, roughness: 0.9 }))
+        );
+        panel.position.set(4.95, 2.05, 0.05);
+        this.scene.add(panel);
+
+        const ink = this.keep(new T.MeshStandardMaterial({ color: 0x2b1b14, roughness: 0.9 }));
+        const rowGeo = this.keep(new T.BoxGeometry(1.05, 0.09, 0.03));
+        const headGeo = this.keep(new T.BoxGeometry(0.62, 0.17, 0.03));
+
+        const heading = new T.Mesh(headGeo, ink);
+        heading.position.set(4.95, 2.72, 0.11);
+        this.scene.add(heading);
+
+        // Menu lines, alternating length so it reads as a list, not a barcode.
+        for (let i = 0; i < 6; i++) {
+          const row = new T.Mesh(rowGeo, ink);
+          row.scale.x = i % 2 ? 0.72 : 1;
+          row.position.set(4.95 - (i % 2 ? 0.14 : 0), 2.36 - i * 0.27, 0.11);
+          this.scene.add(row);
+        }
+      }
+
+      rectPath(x0, y0, x1, y1) {
+        const path = new this.T.Path();
+        path.moveTo(x0, y0); path.lineTo(x1, y0); path.lineTo(x1, y1); path.lineTo(x0, y1); path.closePath();
+        return path;
+      }
+
+      // Everything behind the glass. It is what makes the shop feel occupied
+      // rather than a painted flat — and it is all visible through the doorway too.
+      buildInterior(win, door) {
+        const T = this.T;
+        const warm = this.keep(new T.MeshStandardMaterial({ color: 0xffc57d, emissive: 0xe88224, emissiveIntensity: 0.85, roughness: 1 }));
+        const dark = this.keep(new T.MeshStandardMaterial({ color: 0x2b1b14, roughness: 0.9 }));
+
+        const back = new T.Mesh(this.keep(new T.PlaneGeometry(12, 5.6)), warm);
+        back.position.set(0, 2.8, -5.4);
+        this.scene.add(back);
+
+        const floor = new T.Mesh(this.keep(new T.PlaneGeometry(12, 5.6)), this.keep(new T.MeshStandardMaterial({ color: 0x6d3f2a, roughness: 0.85 })));
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(0, 0.01, -2.7);
+        this.scene.add(floor);
+
+        // Interior fill so the back wall is not the only thing lighting the room.
+        const room = new T.PointLight(0xffb765, 40, 14, 2);
+        room.position.set(-1, 3, -3);
+        this.scene.add(room);
+
+        // Service counter, seen in silhouette against the glow.
+        const counter = new T.Mesh(this.keep(new T.BoxGeometry(5.4, 1.05, 0.7)), dark);
+        counter.position.set(-1.4, 0.52, -1.9);
+        this.scene.add(counter);
+
+        // The griddle and its hood — the source of the steam outside.
+        const hood = new T.Mesh(this.keep(new T.BoxGeometry(2.6, 0.7, 1.1)), dark);
+        hood.position.set(-3, 3.1, -2.6);
+        this.scene.add(hood);
+
+        const griddle = new T.Mesh(this.keep(new T.CylinderGeometry(0.85, 0.85, 0.16, 20)), this.keep(new T.MeshStandardMaterial({ color: 0x120b07, roughness: 0.55, metalness: 0.6 })));
+        griddle.position.set(-3, 1.12, -2.5);
+        this.scene.add(griddle);
+
+        // Staff at the pass and a couple of seated customers: low-poly stand-ins,
+        // never animated, just enough to break up the light.
+        const shapes = [
+          { g: new T.CapsuleGeometry(0.2, 0.5, 3, 8), p: [-3, 1.55, -3.1] },
+          { g: new T.SphereGeometry(0.16, 10, 8), p: [-3, 2.03, -3.1] },
+          { g: new T.CapsuleGeometry(0.2, 0.45, 3, 8), p: [0.6, 1.5, -3.4] },
+          { g: new T.SphereGeometry(0.15, 10, 8), p: [0.6, 1.95, -3.4] },
+          { g: new T.CapsuleGeometry(0.19, 0.4, 3, 8), p: [2.9, 1.4, -3.9] },
+          { g: new T.SphereGeometry(0.15, 10, 8), p: [2.9, 1.82, -3.9] }
+        ];
+        shapes.forEach(({ g, p }) => {
+          const mesh = new T.Mesh(this.keep(g), dark);
+          mesh.position.set(...p);
+          this.scene.add(mesh);
+        });
+
+        // Hanging bulbs inside.
+        const bulbMat = this.keep(new T.MeshStandardMaterial({ color: 0xfff0d0, emissive: 0xffca82, emissiveIntensity: 2.4, roughness: 1 }));
+        const bulbGeo = this.keep(new T.SphereGeometry(0.11, 12, 10));
+        for (const x of [-3.4, -0.9, 1.6]) {
+          const bulb = new T.Mesh(bulbGeo, bulbMat);
+          bulb.position.set(x, 3.35, -1.6);
+          this.scene.add(bulb);
+        }
+      }
+
+      buildAwning(W) {
+        const T = this.T;
+        // A touch of emissive keeps the canvas warm under a cool night sky.
+        const stripeLight = this.keep(new T.MeshStandardMaterial({ color: 0xf3eadf, emissive: 0x71624f, emissiveIntensity: 0.42, roughness: 0.95, side: T.DoubleSide }));
+        const stripeDark = this.keep(new T.MeshStandardMaterial({ color: 0x7d2f1c, emissive: 0x4a1408, emissiveIntensity: 0.35, roughness: 0.95, side: T.DoubleSide }));
+
+        // One tilted slab per stripe — the alternation is the whole read.
+        const awning = new T.Group();
+        const stripeGeo = this.keep(new T.BoxGeometry(0.62, 0.08, 1.95));
+        const count = Math.round(W / 0.62);
+        for (let i = 0; i < count; i++) {
+          const stripe = new T.Mesh(stripeGeo, i % 2 ? stripeLight : stripeDark);
+          stripe.position.x = -W / 2 + 0.31 + i * 0.62;
+          stripe.castShadow = true;
+          awning.add(stripe);
+        }
+        awning.position.set(0, 3.62, 0.82);
+        awning.rotation.x = 0.34;
+        this.scene.add(awning);
+
+        const flue = new T.Mesh(
+          this.keep(new T.CylinderGeometry(0.14, 0.16, 0.62, 10)),
+          this.keep(new T.MeshStandardMaterial({ color: 0x1d1611, roughness: 0.65, metalness: 0.45 }))
+        );
+        flue.position.set(-3.2, 3.88, 0.35);
+        this.scene.add(flue);
+
+        const valance = new T.Mesh(this.keep(new T.BoxGeometry(W, 0.26, 0.08)), stripeDark);
+        valance.position.set(0, 3.06, 1.75);
+        this.scene.add(valance);
+
+        // Brackets back to the wall.
+        const armGeo = this.keep(new T.BoxGeometry(0.07, 0.07, 2));
+        const armMat = this.keep(new T.MeshStandardMaterial({ color: 0x16100b, roughness: 0.8 }));
+        for (const x of [-W / 2 + 0.4, 0, W / 2 - 0.4]) {
+          const arm = new T.Mesh(armGeo, armMat);
+          arm.position.set(x, 3.5, 0.85);
+          arm.rotation.x = 0.34;
+          this.scene.add(arm);
+        }
+      }
+
+      // Signboard text is drawn to a canvas: keeps the brand type crisp without
+      // shipping a font atlas or an SDF.
+      buildSign() {
+        const T = this.T;
+        const px = 256;
+        const pad = document.createElement('canvas');
+        pad.width = px * 3; pad.height = px;
+        const ctx = pad.getContext('2d');
+        ctx.fillStyle = '#0b0605';
+        ctx.fillRect(0, 0, pad.width, pad.height);
+        ctx.fillStyle = '#f7a14b';
+        ctx.font = `900 ${px * 0.62}px 'Noto Serif TC', 'Songti TC', serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.letterSpacing = `${px * 0.14}px`;
+        ctx.fillText('餃木', pad.width / 2, pad.height / 2 + px * 0.03);
+
+        const texture = this.keep(new T.CanvasTexture(pad));
+        texture.colorSpace = T.SRGBColorSpace;
+        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+        this.signTexture = texture;
+        this.signPad = pad;
+
+        const board = new T.Mesh(
+          this.keep(new T.BoxGeometry(3.6, 1.2, 0.16)),
+          [0, 1, 2, 3, 4, 5].map(i => this.keep(i === 4
+            ? new T.MeshStandardMaterial({ map: texture, emissive: 0xe88224, emissiveMap: texture, emissiveIntensity: 0.9, roughness: 0.85 })
+            : new T.MeshStandardMaterial({ color: 0x0b0605, roughness: 0.85 })))
+        );
+        board.position.set(-1.4, 4.36, 0.16);
+        this.scene.add(board);
+
+        const frame = new T.Mesh(
+          this.keep(new T.BoxGeometry(3.78, 1.38, 0.1)),
+          this.keep(new T.MeshStandardMaterial({ color: 0xe88224, emissive: 0xc96216, emissiveIntensity: 0.55, roughness: 0.7 }))
+        );
+        frame.position.set(-1.4, 4.36, 0.1);
+        this.scene.add(frame);
+
+        // Web fonts may still be loading on first paint; redraw once they land.
+        if (document.fonts?.ready) document.fonts.ready.then(() => this.redrawSign()).catch(() => {});
+      }
+
+      redrawSign() {
+        const pad = this.signPad;
+        if (!pad) return;
+        const px = pad.height;
+        const ctx = pad.getContext('2d');
+        ctx.fillStyle = '#0b0605';
+        ctx.fillRect(0, 0, pad.width, pad.height);
+        ctx.fillStyle = '#f7a14b';
+        ctx.font = `900 ${px * 0.62}px 'Noto Serif TC', 'Songti TC', serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.letterSpacing = `${px * 0.14}px`;
+        ctx.fillText('餃木', pad.width / 2, pad.height / 2 + px * 0.03);
+        this.signTexture.needsUpdate = true;
+        if (!this.live) this.renderer.render(this.scene, this.camera);
+      }
+
+      buildLanterns() {
+        const T = this.T;
+        const shade = this.keep(new T.MeshStandardMaterial({ color: 0xe88224, emissive: 0xe88224, emissiveIntensity: 1.5, roughness: 0.9 }));
+        const cord = this.keep(new T.MeshStandardMaterial({ color: 0xc96216, roughness: 0.9 }));
+        const bodyGeo = this.keep(new T.SphereGeometry(0.34, 16, 12));
+        const cordGeo = this.keep(new T.CylinderGeometry(0.02, 0.02, 0.5, 6));
+
+        this.lanterns = [-4.9, 1.85].map((x, i) => {
+          const pivot = new T.Group();
+          pivot.position.set(x, 3.5, 1.55);
+
+          const line = new T.Mesh(cordGeo, cord);
+          line.position.y = -0.25;
+          pivot.add(line);
+
+          const body = new T.Mesh(bodyGeo, shade);
+          body.scale.set(1, 1.25, 1);
+          body.position.y = -0.85;
+          pivot.add(body);
+
+          const glow = new T.PointLight(0xffa74d, 16, 7, 2);
+          glow.position.y = -0.85;
+          pivot.add(glow);
+          this.lanternLights.push(glow);
+
+          this.scene.add(pivot);
+          return { pivot, speed: 0.62 + i * 0.17, offset: i * 2.1 };
+        });
+      }
+
+      /* ---------------- Neighbouring shophouses + skyline ---------------- */
+      buildNeighbours() {
+        const T = this.T;
+        const wall = this.keep(new T.MeshStandardMaterial({ color: 0x16100c, roughness: 0.95 }));
+        const litMat = this.keep(new T.MeshStandardMaterial({ color: 0x2a1810, emissive: 0xb56a2a, emissiveIntensity: 0.7, roughness: 1 }));
+        const winGeo = this.keep(new T.PlaneGeometry(0.85, 1.1));
+
+        // The street continues both ways so wide viewports never run out of world.
+        let x = -6;
+        for (let i = 0; i < 5; i++) {
+          const w = 5 + (i % 3) * 1.6;
+          x -= w / 2;
+          this.shophouse(x, w, 5 + (i % 4), wall, litMat, winGeo, -0.7 - (i % 2) * 0.5);
+          x -= w / 2 + 0.25;
+        }
+        x = 6;
+        for (let i = 0; i < 5; i++) {
+          const w = 5.5 + (i % 3) * 1.4;
+          x += w / 2;
+          this.shophouse(x, w, 4.6 + (i % 4), wall, litMat, winGeo, -0.55 - (i % 2) * 0.6);
+          x += w / 2 + 0.25;
+        }
+
+        // Far towers, fogged almost to nothing — depth for free.
+        const towerGeo = this.keep(new T.BoxGeometry(1, 1, 1));
+        for (let i = 0; i < 22; i++) {
+          const tower = new T.Mesh(towerGeo, wall);
+          const h = 9 + (i * 7919 % 17);
+          tower.scale.set(4 + (i * 613 % 5), h, 5);
+          tower.position.set(-46 + i * 4.4 + (i * 331 % 3), h / 2 - 1, -16 - (i * 197 % 11));
+          this.scene.add(tower);
+        }
+      }
+
+      shophouse(x, w, h, wall, litMat, winGeo, z) {
+        const T = this.T;
+        const body = new T.Mesh(this.keep(new T.BoxGeometry(w, h, 6)), wall);
+        body.position.set(x, h / 2, z - 3);
+        body.castShadow = true;
+        this.scene.add(body);
+
+        // A few lit upper windows so the row is not a dead wall.
+        const cols = Math.max(2, Math.floor(w / 2.2));
+        for (let r = 0; r < Math.max(1, Math.floor((h - 2) / 1.9)); r++) {
+          for (let c = 0; c < cols; c++) {
+            if ((r * 7 + c * 13 + Math.round(x)) % 3 === 0) continue;   // some are dark
+            const pane = new T.Mesh(winGeo, litMat);
+            pane.position.set(x - w / 2 + 1.1 + c * (w - 2.2) / Math.max(1, cols - 1), 2.2 + r * 1.9, z + 0.02);
+            this.scene.add(pane);
+          }
+        }
+      }
+
+      /* ---------------- Street lamps ---------------- */
+      buildLamps() {
+        const T = this.T;
+        const metal = this.keep(new T.MeshStandardMaterial({ color: 0x191310, roughness: 0.6, metalness: 0.5 }));
+        const bulb = this.keep(new T.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xffd79a, emissiveIntensity: 2.2, roughness: 1 }));
+        const poleGeo = this.keep(new T.CylinderGeometry(0.09, 0.13, 4.4, 8));
+        const armGeo = this.keep(new T.CylinderGeometry(0.05, 0.05, 1.3, 6));
+        const headGeo = this.keep(new T.ConeGeometry(0.42, 0.5, 10, 1, true));
+        const glowGeo = this.keep(new T.SphereGeometry(0.17, 10, 8));
+
+        // Placed off to the sides so they frame the shopfront instead of masking it.
+        for (const x of [-9.5, 9.5, -19, 19, -28]) {
+          const lamp = new T.Group();
+          lamp.position.set(x, 0, 5.8);
+          const inward = x > 0 ? -1 : 1;
+
+          const pole = new T.Mesh(poleGeo, metal);
+          pole.position.y = 2.2;
+          pole.castShadow = true;
+          lamp.add(pole);
+
+          const arm = new T.Mesh(armGeo, metal);
+          arm.position.set(inward * 0.6, 4.3, 0);
+          arm.rotation.z = Math.PI / 2;
+          lamp.add(arm);
+
+          const head = new T.Mesh(headGeo, metal);
+          head.position.set(inward * 1.2, 4.16, 0);
+          lamp.add(head);
+
+          const lens = new T.Mesh(glowGeo, bulb);
+          lens.position.set(inward * 1.2, 4.0, 0);
+          lamp.add(lens);
+
+          const light = new T.PointLight(0xffc27a, 34, 17, 2);
+          light.position.set(inward * 1.2, 3.9, 0);
+          lamp.add(light);
+
+          this.scene.add(lamp);
+        }
+      }
+
+      /* ---------------- Steam ---------------- */
+      // One draw call, animated entirely in the vertex shader — no per-frame CPU
+      // work and no geometry churn.
+      buildSteam() {
+        const T = this.T;
+        const COUNT = 54;
+        const seed = new Float32Array(COUNT);
+        const origin = new Float32Array(COUNT * 3);
+        const life = new Float32Array(COUNT);
+        const vents = [[-3, 1.3, -2.4], [-3.2, 4.15, 0.35], [-3, 1.3, -2.4]];
+
+        for (let i = 0; i < COUNT; i++) {
+          const v = vents[i % vents.length];
+          origin[i * 3] = v[0] + (Math.random() - 0.5) * 0.9;
+          origin[i * 3 + 1] = v[1];
+          origin[i * 3 + 2] = v[2] + (Math.random() - 0.5) * 0.6;
+          seed[i] = Math.random() * 6.283;
+          life[i] = 3.4 + Math.random() * 2.6;
+        }
+
+        const geo = this.keep(new T.BufferGeometry());
+        geo.setAttribute('position', new T.BufferAttribute(origin, 3));
+        geo.setAttribute('aSeed', new T.BufferAttribute(seed, 1));
+        geo.setAttribute('aLife', new T.BufferAttribute(life, 1));
+
+        this.steamMat = this.keep(new T.ShaderMaterial({
+          transparent: true,
+          depthWrite: false,
+          blending: T.AdditiveBlending,
+          uniforms: { uTime: { value: 0 }, uScale: { value: 1 } },
+          vertexShader: `
+            attribute float aSeed; attribute float aLife;
+            uniform float uTime; uniform float uScale;
+            varying float vFade;
+            void main() {
+              float t = mod(uTime + aSeed * aLife, aLife) / aLife;   // 0..1 per puff
+              vec3 p = position;
+              p.y += t * 2.5;
+              p.x += sin(aSeed + t * 3.1) * 0.42 * t;
+              p.z += cos(aSeed * 1.7 + t * 2.4) * 0.3 * t;
+              vFade = sin(t * 3.14159) * 0.38;                        // fade in, fade out
+              vec4 mv = modelViewMatrix * vec4(p, 1.0);
+              gl_PointSize = (70.0 + t * 220.0) * uScale / -mv.z;
+              gl_Position = projectionMatrix * mv;
+            }`,
+          fragmentShader: `
+            varying float vFade;
+            void main() {
+              float d = length(gl_PointCoord - 0.5);
+              if (d > 0.5) discard;
+              float a = smoothstep(0.5, 0.06, d) * vFade;
+              gl_FragColor = vec4(vec3(1.0, 0.87, 0.7) * 0.7, a);
+            }`
+        }));
+
+        this.steam = new T.Points(geo, this.steamMat);
+        this.steam.frustumCulled = false;
+        this.scene.add(this.steam);
+      }
+
+      /* ---------------- The crowd ---------------- */
+      // Lanes across the pavement. Deeper lanes read as further from the kerb.
+      static LANES = [1.25, 2.5, 3.7, 5.0];
+      static LANES_NARROW = [1.3, 2.4, 3.5];
+      static COATS = [0x2f2119, 0x3d2a3a, 0x24303f, 0x4a2b21, 0x2c3b32, 0x51392a, 0x1f242e, 0x5c4433];
+      static SKINS = [0xd8a778, 0xf0c9a0, 0xb07f52, 0xe8b98c];
+
+      buildCrowd() {
+        const T = this.T;
+        // Shared geometry: one allocation each, fourteen people wearing them.
+        this.G = {
+          head: this.keep(new T.SphereGeometry(0.115, 14, 10)),
+          hair: this.keep(new T.SphereGeometry(0.121, 14, 10)),
+          torso: this.keep(new T.CapsuleGeometry(0.17, 0.3, 4, 12)),
+          upperLeg: this.keep(new T.CapsuleGeometry(0.078, 0.29, 3, 10)),
+          lowerLeg: this.keep(new T.CapsuleGeometry(0.062, 0.3, 3, 10)),
+          upperArm: this.keep(new T.CapsuleGeometry(0.058, 0.22, 3, 8)),
+          foreArm: this.keep(new T.CapsuleGeometry(0.05, 0.2, 3, 8)),
+          foot: this.keep(new T.BoxGeometry(0.11, 0.07, 0.26)),
+          bag: this.keep(new T.BoxGeometry(0.26, 0.3, 0.14)),
+          pack: this.keep(new T.BoxGeometry(0.3, 0.36, 0.18))
+        };
+
+        const narrow = window.innerWidth < 768;
+        this.lanes = narrow ? Scene3D.LANES_NARROW : Scene3D.LANES;
+        const count = narrow ? 10 : window.innerWidth < 1400 ? 15 : 18;
+        for (let i = 0; i < count; i++) {
+          const person = this.makePerson(i);
+          this.people.push(person);
+          this.scene.add(person.root);
+          this.assignRoute(person, true);
+        }
+      }
+
+      makePerson(index) {
+        const T = this.T;
+        const G = this.G;
+        const rnd = (a, b) => a + Math.random() * (b - a);
+
+        const coat = this.keep(new T.MeshStandardMaterial({
+          color: Scene3D.COATS[index % Scene3D.COATS.length], roughness: 0.88, metalness: 0
+        }));
+        const skin = this.keep(new T.MeshStandardMaterial({
+          color: Scene3D.SKINS[index % Scene3D.SKINS.length], roughness: 0.75, metalness: 0
+        }));
+
+        const root = new T.Group();
+        const bob = new T.Group();
+        root.add(bob);
+        root.scale.setScalar(rnd(0.92, 1.07));
+
+        const add = (parent, geo, mat, y = 0, x = 0, z = 0, shadow = false) => {
+          const mesh = new T.Mesh(geo, mat);
+          mesh.position.set(x, y, z);
+          mesh.castShadow = shadow;
+          parent.add(mesh);
+          return mesh;
+        };
+
+        const hairMat = this.keep(new T.MeshStandardMaterial({ color: 0x1a1310, roughness: 0.95 }));
+        const mats = [coat, skin, hairMat];                      // every material the threshold fade must reach
+
+        add(bob, G.torso, coat, 1.22, 0, 0, true);
+        add(bob, G.head, skin, 1.66, 0, 0);
+        const hair = add(bob, G.hair, hairMat, 1.675, 0, -0.008);
+        hair.scale.set(1, 0.66, 1);
+
+        // Limbs hang off pivots so a rotation swings the whole chain, exactly
+        // like the 2D version's transform-origin trick — now with a knee and an elbow.
+        const limb = (px, py, upperGeo, upperLen, lowerGeo, lowerLen, foot, shadow) => {
+          const hip = new T.Group();
+          hip.position.set(px, py, 0);
+          bob.add(hip);
+          add(hip, upperGeo, coat, -upperLen / 2, 0, 0, shadow);
+          const joint = new T.Group();
+          joint.position.y = -upperLen;
+          hip.add(joint);
+          add(joint, lowerGeo, coat, -lowerLen / 2, 0, 0, shadow);
+          if (foot) add(joint, G.foot, coat, -lowerLen - 0.02, 0, 0.06);
+          return { hip, joint };
+        };
+
+        const legL = limb(-0.095, 0.9, G.upperLeg, 0.446, G.lowerLeg, 0.424, true, true);
+        const legR = limb(0.095, 0.9, G.upperLeg, 0.446, G.lowerLeg, 0.424, true, true);
+        const armL = limb(-0.215, 1.44, G.upperArm, 0.336, G.foreArm, 0.3, false, false);
+        const armR = limb(0.215, 1.44, G.upperArm, 0.336, G.foreArm, 0.3, false, false);
+
+        // Props: a takeaway bag in one hand, or a pack on the back.
+        const prop = index % 3;
+        let bag = null;
+        if (prop === 0) {
+          const bagMat = this.keep(new T.MeshStandardMaterial({ color: 0xe7d3bd, roughness: 0.9 }));
+          mats.push(bagMat);
+          bag = add(armR.joint, G.bag, bagMat, -0.42, 0, 0.02);
+          bag.visible = false;                                   // only on the way out
+        } else if (prop === 1) {
+          add(bob, G.pack, coat, 1.26, 0, -0.21);
+        }
+
+        return {
+          root, bob, legL, legR, armL, armR, bag, mats,
+          speed: rnd(1.05, 1.55),
+          stride: rnd(0.66, 0.8),
+          doorOffset: rnd(-0.38, 0.38),                          // nobody walks the exact same line in
+          laneOffset: rnd(-0.32, 0.32),
+          turnZ: rnd(0.62, 0.98),
+          phase: Math.random() * 6.283,
+          heading: 0,
+          pos: { x: 0, z: 0 },
+          path: [],
+          index: 0,
+          opacity: 1
+        };
+      }
+
+      /* ---------------- Routes ----------------
+         Three behaviours, and the door is the point of all of them: some people
+         only pass the shop, some turn in at the doorway, some come back out with
+         a bag. Fading is positional — anyone past the threshold plane dissolves —
+         so entering and leaving need no special-casing. */
+      assignRoute(person, initial = false) {
+        const L = this.lanes;
+        const lane = L[Math.floor(Math.random() * L.length)] + person.laneOffset;
+        const edge = this.edgeX;
+        const dir = Math.random() < 0.5 ? 1 : -1;               // 1 = walking right
+        const door = this.door;
+        const roll = Math.random();
+
+        if (roll < 0.3) {
+          // Walk in: along the pavement, square up to the door, step through.
+          person.path = [
+            { x: -dir * edge, z: lane },
+            { x: door.x + person.doorOffset + dir * 0.15, z: lane },
+            { x: door.x + person.doorOffset, z: person.turnZ },
+            { x: door.x + person.doorOffset * 0.5, z: door.z }
+          ];
+          person.carrying = false;
+        } else if (roll < 0.56) {
+          // Come out: appear in the doorway, step down to the pavement, walk off.
+          person.path = [
+            { x: door.x + person.doorOffset * 0.5, z: door.z },
+            { x: door.x + person.doorOffset, z: person.turnZ + 0.2 },
+            { x: door.x + person.doorOffset + dir * 0.9, z: lane },
+            { x: dir * edge, z: lane }
+          ];
+          person.carrying = true;
+        } else {
+          // Just passing through.
+          person.path = [
+            { x: -dir * edge, z: lane },
+            { x: dir * edge, z: lane }
+          ];
+          person.carrying = false;
+        }
+
+        person.index = 1;
+        person.pos.x = person.path[0].x;
+        person.pos.z = person.path[0].z;
+        if (person.bag) person.bag.visible = person.carrying;
+
+        // Spread everyone along their route on first paint instead of releasing
+        // the whole crowd from the edges at once.
+        if (initial) this.advance(person, Math.random() * this.routeLength(person) / person.speed);
+
+        const next = person.path[person.index] || person.path[person.path.length - 1];
+        person.heading = Math.atan2(next.x - person.pos.x, next.z - person.pos.z);
+        this.applyPerson(person);
+      }
+
+      routeLength(person) {
+        let total = 0;
+        for (let i = 1; i < person.path.length; i++) {
+          total += Math.hypot(person.path[i].x - person.path[i - 1].x, person.path[i].z - person.path[i - 1].z);
+        }
+        return total;
+      }
+
+      // Walk a person forward by `seconds`, following the waypoint chain.
+      // Returns false once the route is spent.
+      advance(person, seconds) {
+        let budget = person.speed * seconds;
+        while (budget > 0) {
+          const target = person.path[person.index];
+          if (!target) return false;
+          const dx = target.x - person.pos.x;
+          const dz = target.z - person.pos.z;
+          const gap = Math.hypot(dx, dz);
+          if (gap <= budget) {
+            person.pos.x = target.x;
+            person.pos.z = target.z;
+            person.index++;
+            budget -= gap;
+            person.phase += (gap / person.stride) * Math.PI;
+            if (person.index >= person.path.length) return false;
+          } else {
+            person.pos.x += (dx / gap) * budget;
+            person.pos.z += (dz / gap) * budget;
+            person.phase += (budget / person.stride) * Math.PI;
+            // Turn into the direction of travel rather than snapping to it.
+            const want = Math.atan2(dx, dz);
+            person.heading += this.shortestAngle(person.heading, want) * Math.min(1, seconds * 6);
+            budget = 0;
+          }
+        }
+        return true;
+      }
+
+      shortestAngle(from, to) {
+        let delta = (to - from) % (Math.PI * 2);
+        if (delta > Math.PI) delta -= Math.PI * 2;
+        if (delta < -Math.PI) delta += Math.PI * 2;
+        return delta;
+      }
+
+      // Push simulation state onto the actual transforms.
+      applyPerson(person) {
+        person.root.position.set(person.pos.x, 0, person.pos.z);
+        person.root.rotation.y = person.heading;
+
+        const swing = Math.sin(person.phase);
+        person.legL.hip.rotation.x = swing * 0.4;
+        person.legR.hip.rotation.x = -swing * 0.4;
+        // Knees only fold on the forward swing, which is what stops the walk
+        // reading as a pair of scissors.
+        person.legL.joint.rotation.x = Math.max(0, -swing) * 0.7;
+        person.legR.joint.rotation.x = Math.max(0, swing) * 0.7;
+
+        person.armL.hip.rotation.x = -swing * 0.36;
+        person.armR.hip.rotation.x = swing * 0.36;
+        person.armL.joint.rotation.x = 0.28 + Math.max(0, swing) * 0.3;
+        person.armR.joint.rotation.x = 0.28 + Math.max(0, -swing) * 0.3;
+
+        person.bob.position.y = -Math.abs(swing) * 0.045;
+        person.bob.rotation.z = swing * 0.028;
+
+        // Dissolve across the shop threshold — covers both directions. The ramp
+        // starts at the facade plane, not before it, so nobody goes translucent
+        // while still standing out on the pavement.
+        const opacity = Math.max(0, Math.min(1, (person.pos.z + 0.78) / 0.9));
+        if (opacity !== person.opacity) {
+          person.opacity = opacity;
+          for (const mat of person.mats) {
+            mat.opacity = opacity;
+            mat.transparent = opacity < 1;
+            mat.needsUpdate = true;
+          }
+          if (person.bag) person.bag.visible = person.carrying && opacity > 0.05;
+        }
+      }
+
+      /* ---------------- Frame loop ---------------- */
+      now() { return performance.now() / 1000; }
+
+      tick() {
+        this.frame = requestAnimationFrame(this.tick);
+        const stamp = this.now();
+        // Clamped: a backgrounded tab or a long paint must not teleport anyone.
+        const dt = Math.min(stamp - this.last, 0.05);
+        this.last = stamp;
+        this.time += dt;
+        this.step(dt);
+        this.renderer.render(this.scene, this.camera);
+      }
+
+      step(dt) {
+        const t = this.time;
+
+        for (const person of this.people) {
+          if (dt > 0 && !this.advance(person, dt)) this.assignRoute(person);
+          this.applyPerson(person);
+        }
+
+        for (const lantern of this.lanterns) {
+          lantern.pivot.rotation.z = Math.sin(t * lantern.speed + lantern.offset) * 0.07;
+          lantern.pivot.rotation.x = Math.cos(t * lantern.speed * 0.7 + lantern.offset) * 0.04;
+        }
+
+        // Gas-flame flicker on the warm sources — small, irregular, never a strobe.
+        const flicker = 1 + Math.sin(t * 7.3) * 0.03 + Math.sin(t * 2.9) * 0.025;
+        this.lanternLights.forEach((light, i) => { light.intensity = 16 * (flicker + Math.sin(t * 5.1 + i) * 0.02); });
+        this.doorLight.intensity = 26 * flicker;
+        this.spill.intensity = 190 * (1 + Math.sin(t * 1.7) * 0.015);
+
+        this.steamMat.uniforms.uTime.value = t;
+
+        // Damped pointer parallax plus a slow idle drift, so the shot breathes
+        // even when nobody moves the mouse.
+        this.pointer.x += (this.pointer.tx - this.pointer.x) * Math.min(1, dt * 2.6);
+        this.pointer.y += (this.pointer.ty - this.pointer.y) * Math.min(1, dt * 2.6);
+        this.camRoot.rotation.y = this.pointer.x * 0.045 + Math.sin(t * 0.11) * 0.018;
+        this.camRoot.rotation.x = this.pointer.y * 0.018 + Math.sin(t * 0.09) * 0.006;
+      }
+
+      /* ---------------- Framing ---------------- */
+      resize() {
+        const width = stage.clientWidth;
+        const height = stage.clientHeight;
+        if (!width || !height) return;
+
+        const aspect = width / height;
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.85));
+        this.renderer.setSize(width, height, false);
+        this.camera.aspect = aspect;
+
+        // A phone is too narrow to frame by street width without pushing the
+        // camera to the far side of the road, so portrait stages frame the
+        // shopfront by height instead. Landscape ones frame by how much street
+        // should be in shot — the pavement, not the facade, is the subject, so
+        // the camera rides high enough to look down the length of it.
+        const tall = aspect < 1.4;
+        const halfH = Math.tan((this.camera.fov * Math.PI) / 360);
+        const span = aspect < 2.1 ? 17 : aspect < 3.1 ? 24 : 30;
+        const distance = tall
+          ? 7.4 / (2 * halfH)
+          : Math.max(9, Math.min(24, span / 2 / (halfH * aspect)));
+
+        const focusX = tall ? 0.55 : 0.3;
+        const yaw = -0.16;                                       // a touch left of the facade
+        this.camera.position.set(Math.sin(yaw) * distance + focusX, (tall ? 2.25 : 2.5) + distance * (tall ? 0.085 : 0.095), Math.cos(yaw) * distance + 0.4);
+        this.camera.lookAt(focusX, tall ? 2.05 : 1.75, tall ? 1 : 2.1);
+        this.camera.updateProjectionMatrix();
+
+        // Spawn people just outside whatever is actually visible.
+        this.edgeX = Math.max(9, halfH * aspect * distance + 3.5);   // just past the frame edge
+        this.steamMat.uniforms.uScale.value = height / 520;
+
+        if (!this.live) this.renderer.render(this.scene, this.camera);
+      }
+
+      /* ---------------- Wiring ---------------- */
+      bindEvents() {
+        this.onResize = () => this.resize();
+        this.observer = new ResizeObserver(this.onResize);
+        this.observer.observe(stage);
+
+        // Render only while the stage is actually on screen.
+        this.io = new IntersectionObserver(entries => {
+          entries.forEach(entry => { this.onScreen = entry.isIntersecting; });
+          this.setRunning(this.onScreen && !document.hidden);
+        }, { threshold: 0 });
+        this.io.observe(stage);
+
+        this.onVisibility = () => this.setRunning(this.onScreen && !document.hidden);
+        document.addEventListener('visibilitychange', this.onVisibility);
+
+        this.onPointer = event => {
+          const rect = stage.getBoundingClientRect();
+          this.pointer.tx = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+          this.pointer.ty = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+        };
+        if (!this.reduced) window.addEventListener('pointermove', this.onPointer, { passive: true });
+
+        // If the GPU drops the context, fall back rather than leaving a hole.
+        this.onLost = event => { event.preventDefault(); this.setRunning(false); stage.classList.remove('is-3d'); };
+        canvas.addEventListener('webglcontextlost', this.onLost);
+
+        this.onUnload = () => this.dispose();
+        window.addEventListener('pagehide', this.onUnload);
+      }
+
+      setRunning(run) {
+        if (this.reduced) return;
+        if (run && !this.live) {
+          this.live = true;
+          this.last = this.now();                                 // drop the idle gap
+          this.frame = requestAnimationFrame(this.tick);
+        } else if (!run && this.live) {
+          this.live = false;
+          cancelAnimationFrame(this.frame);
+        }
+      }
+
+      dispose() {
+        cancelAnimationFrame(this.frame);
+        this.live = false;
+        this.observer?.disconnect();
+        this.io?.disconnect();
+        document.removeEventListener('visibilitychange', this.onVisibility);
+        window.removeEventListener('pointermove', this.onPointer);
+        window.removeEventListener('pagehide', this.onUnload);
+        canvas.removeEventListener('webglcontextlost', this.onLost);
+        for (const item of this.disposables) item.dispose?.();
+        this.renderer?.dispose();
+      }
+    }
   </script>
 
 </body>
