@@ -771,12 +771,22 @@
     }
 
     function loadCart() {
-      const saved = safeParse(localStorage.getItem('gyozaWoodCart') || '[]', []);
+      let saved = [];
+      try {
+        saved = safeParse(localStorage.getItem('gyozaWoodCart') || '[]', []);
+      } catch {
+        // Storage can be unavailable in private browsing or hardened embeds.
+        // Keep the cart usable in memory instead of aborting page setup.
+      }
       return Array.isArray(saved) ? saved.filter(item => getProduct(item.id) && Number(item.qty) > 0).map(item => ({ id: item.id, qty: Math.floor(Number(item.qty)) })) : [];
     }
 
     function saveCart() {
-      localStorage.setItem('gyozaWoodCart', JSON.stringify(cart));
+      try {
+        localStorage.setItem('gyozaWoodCart', JSON.stringify(cart));
+      } catch {
+        // The current session still works when persistent storage is blocked.
+      }
     }
 
     function cartCount() {
