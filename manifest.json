@@ -1,0 +1,41 @@
+{
+  "id": "/",
+  "name": "餃木 GYOZA WOOD｜金黃酥脆手工鍋貼",
+  "short_name": "餃木 GYOZA WOOD",
+  "description": "餃木 GYOZA WOOD｜極簡現代風鍋貼專賣店。每日現包、現點現煎，提供線上點餐、冷凍禮盒與門市資訊。",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#2b1b14",
+  "theme_color": "#2b1b14",
+  "lang": "zh-Hant",
+  "dir": "ltr",
+  "categories": ["food", "shopping"],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
