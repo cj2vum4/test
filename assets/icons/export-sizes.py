@@ -14,7 +14,6 @@ REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 os.makedirs(OUT, exist_ok=True)
 
 master = Image.open(SRC).convert("RGB")  # 1024x1024, opaque bg
-BG_EDGE = (44, 25, 17)  # matches make_icon.py's outer gradient color, for seamless padding
 
 sizes = {
     "icon-512.png": 512,
@@ -28,17 +27,12 @@ for name, size in sizes.items():
     im.save(os.path.join(OUT, name))
     print("saved", name, im.size)
 
-# maskable icon: pad content to ~84% so it survives Android's safe-zone crop
-def make_maskable(size):
-    canvas = Image.new("RGB", (size, size), BG_EDGE)
-    inner = int(size * 0.84)
-    resized = master.resize((inner, inner), Image.LANCZOS)
-    off = (size - inner) // 2
-    canvas.paste(resized, (off, off))
-    return canvas
-
+# maskable icon: generate-icon.py already keeps the photo badge within a
+# 0.33 W radius (inside Android's 0.4 W safe zone) with the background
+# filling edge-to-edge, so the same composition is reused as-is — no extra
+# padding needed.
 for size in (512, 192):
-    im = make_maskable(size)
+    im = master.resize((size, size), Image.LANCZOS)
     im.save(os.path.join(OUT, f"icon-maskable-{size}.png"))
     print("saved maskable", size)
 
