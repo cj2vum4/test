@@ -662,7 +662,7 @@
       <button id="checkoutButton" type="button" disabled class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-wood-900 px-5 py-4 font-bold text-white transition enabled:hover:bg-wood-800 disabled:cursor-not-allowed disabled:opacity-40">
         前往結帳 <i data-lucide="arrow-right" class="h-5 w-5"></i>
       </button>
-      <p class="mt-3 text-center text-xs text-wood-400">此為品牌官網互動展示，不會產生真實交易。</p>
+      <p class="mt-3 text-center text-xs text-wood-400">訂單將送出至店家後台，恕不支援線上刷卡。</p>
     </div>
   </aside>
 
@@ -695,10 +695,17 @@
 
           <div class="mt-6 rounded-3xl bg-wood-900 p-5 text-white">
             <div class="flex items-center justify-between"><span class="text-sm text-white/60">應付總額</span><strong id="checkoutTotal" class="text-2xl text-ember-400">$0</strong></div>
-            <p class="mt-2 text-xs text-white/45">按下建立訂單即完成本次模擬結帳。</p>
+            <p class="mt-2 text-xs text-white/45">訂單將送出至店家後台，恕不支援線上刷卡，付款請於取餐/取貨時完成。</p>
           </div>
 
-          <button type="submit" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-ember-500 px-5 py-4 font-bold text-white transition hover:bg-ember-600">建立訂單 <i data-lucide="check" class="h-5 w-5"></i></button>
+          <div id="checkoutError" class="mt-4 hidden items-start gap-2 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600" role="alert">
+            <i data-lucide="alert-triangle" class="mt-0.5 h-4 w-4 shrink-0"></i>
+            <span id="checkoutErrorText">送出失敗，請再試一次。</span>
+          </div>
+
+          <button id="checkoutSubmitButton" type="submit" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-ember-500 px-5 py-4 font-bold text-white transition hover:bg-ember-600 disabled:cursor-not-allowed disabled:opacity-60">
+            <span id="checkoutSubmitLabel">建立訂單</span> <i data-lucide="check" class="h-5 w-5"></i>
+          </button>
         </form>
 
         <div id="orderSuccess" class="hidden p-8 text-center sm:p-12">
@@ -715,6 +722,12 @@
 
   <script>
     'use strict';
+
+    // ---------- Order backend (Google Sheet via Apps Script) ----------
+    // 部署步驟見 gas/README.md。ORDER_ENDPOINT 換成部署後的 Web App 網址
+    // （結尾 /exec）；ORDER_SHARED_SECRET 要與 gas/Code.gs 裡的密鑰一致。
+    const ORDER_ENDPOINT = 'PASTE_YOUR_GAS_WEB_APP_URL_HERE';
+    const ORDER_SHARED_SECRET = 'di-pU3LwVsB7fq_FDIZMRkIijjpetFSL';
 
     // ---------- Product and content data ----------
     const products = [
@@ -1042,6 +1055,8 @@
       const modal = $('#checkoutModal');
       $('#checkoutForm').classList.remove('hidden');
       $('#orderSuccess').classList.add('hidden');
+      setCheckoutError(null);
+      setCheckoutSubmitting(false);
       modal.classList.remove('hidden');
       modal.classList.add('flex');
       document.body.classList.add('overflow-hidden');
@@ -1160,21 +1175,94 @@
       addressInput.required = isDelivery;
     }));
 
-    $('#checkoutForm').addEventListener('submit', event => {
+    function setCheckoutError(message) {
+      const banner = $('#checkoutError');
+      if (!message) {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+        return;
+      }
+      $('#checkoutErrorText').textContent = message;
+      banner.classList.remove('hidden');
+      banner.classList.add('flex');
+    }
+
+    function setCheckoutSubmitting(submitting) {
+      $('#checkoutSubmitButton').disabled = submitting;
+      $('#checkoutSubmitLabel').textContent = submitting ? '送出中…' : '建立訂單';
+    }
+
+    // 送單到 gas/Code.gs 部署的 Web App，寫進 Google Sheet。
+    // Content-Type 用 text/plain 是刻意的：Apps Script 不處理瀏覽器的
+    // CORS 預檢（OPTIONS）請求，用 text/plain 讓瀏覽器把這當「簡單請求」
+    // 直接送出，避免預檢失敗。伺服器端仍會用 JSON.parse 解讀內容。
+    async function submitOrder(payload) {
+      if (!ORDER_ENDPOINT || ORDER_ENDPOINT.includes('PASTE_YOUR_GAS_WEB_APP_URL_HERE')) {
+        throw new Error('尚未設定訂單接收網址，請參考 gas/README.md 完成部署設定。');
+      }
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      let response;
+      try {
+        response = await fetch(ORDER_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+      } catch (networkErr) {
+        throw new Error(networkErr.name === 'AbortError' ? '連線逾時，請檢查網路後再試一次。' : '無法連線到訂單伺服器，請確認網路連線。');
+      } finally {
+        clearTimeout(timeout);
+      }
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error('訂單伺服器回應異常，請稍後再試一次。');
+      }
+      if (!data || !data.ok) {
+        throw new Error((data && data.error) || '送出失敗，請再試一次。');
+      }
+      return data;
+    }
+
+    $('#checkoutForm').addEventListener('submit', async event => {
       event.preventDefault();
+      setCheckoutError(null);
+
       const formData = new FormData(event.currentTarget);
       const fulfillment = formData.get('fulfillment');
       const name = formData.get('name');
-      const orderNo = `GW${new Date().toISOString().slice(2, 10).replace(/-/g, '')}${Math.floor(1000 + Math.random() * 9000)}`;
-      $('#checkoutForm').classList.add('hidden');
-      $('#orderSuccess').classList.remove('hidden');
-      $('#orderNumber').textContent = orderNo;
-      $('#successMessage').textContent = `${name}，你的${fulfillment}訂單已完成建立。我們會以手機或電子郵件提供後續資訊。`;
-      cart = [];
-      renderCart();
-      event.currentTarget.reset();
-      $('#addressField').classList.add('hidden');
-      $('#addressField input').required = false;
+      const payload = {
+        secret: ORDER_SHARED_SECRET,
+        fulfillment,
+        name,
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        address: formData.get('address') || '',
+        note: formData.get('note') || '',
+        items: cart.map(item => ({ id: item.id, qty: item.qty })),
+        source: location.href
+      };
+
+      setCheckoutSubmitting(true);
+      try {
+        const result = await submitOrder(payload);
+        $('#checkoutForm').classList.add('hidden');
+        $('#orderSuccess').classList.remove('hidden');
+        $('#orderNumber').textContent = result.orderNo;
+        $('#successMessage').textContent = `${name}，你的${fulfillment}訂單已送出。我們會以手機或電子郵件提供後續資訊。`;
+        cart = [];
+        renderCart();
+        event.currentTarget.reset();
+        $('#addressField').classList.add('hidden');
+        $('#addressField input').required = false;
+      } catch (err) {
+        setCheckoutError(err.message || '送出失敗，請再試一次。');
+      } finally {
+        setCheckoutSubmitting(false);
+      }
     });
 
     $('#newsletterForm').addEventListener('submit', event => {
